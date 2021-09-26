@@ -1,5 +1,5 @@
-import React from 'react'
-import { Image, TouchableOpacity, View, Text, StyleSheet } from 'react-native'
+import React, { useEffect, useState, useRef } from 'react'
+import { Image, TouchableOpacity, View, Text, TextInput, StyleSheet } from 'react-native'
 import trashIcon from '../assets/icons/trash/trash.png'
 import Icon from 'react-native-vector-icons/Feather';
 
@@ -16,7 +16,35 @@ interface TaskItemProps extends Task {
   removeTask: (id: number) => void;
 }
 
-export function TaskItem({ id, title, done, index, toggleTaskDone, removeTask }: TaskItemProps) {
+export function TaskItem({ id, title, done, index, toggleTaskDone, editTask, removeTask }: TaskItemProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [taskNewTitle, setTaskNewTitle] = useState(title)
+  const textInputRef = useRef<TextInput>(null)
+
+  function handleStartEditing() {
+    setIsEditing(true)
+  }
+
+  function handleCancelEditing() {
+    setIsEditing(false)
+    setTaskNewTitle(title)
+  }
+
+  function handleSubmitEditing() {
+    editTask(id, taskNewTitle)
+    setIsEditing(false)
+  }
+
+  useEffect(() => {
+    if (textInputRef.current) {
+      if (isEditing) {
+        textInputRef.current.focus();
+      } else {
+        textInputRef.current.blur();
+      }
+    }
+  }, [isEditing])
+
   return(
         <>
           <View>
@@ -25,12 +53,10 @@ export function TaskItem({ id, title, done, index, toggleTaskDone, removeTask }:
               activeOpacity={0.7}
               style={styles.taskButton}
               onPress={() => toggleTaskDone(id)}
-              //TODO - use onPress (toggle task) prop
             >
               <View 
                 testID={`marker-${index}`}
                 style={(done ? styles.taskMarkerDone : styles.taskMarker)}
-                //TODO - use style prop 
               >
                 { done && (
                   <Icon 
@@ -41,23 +67,45 @@ export function TaskItem({ id, title, done, index, toggleTaskDone, removeTask }:
                 )}
               </View>
 
-              <Text
+              <TextInput
+                testID={`input-${index}`}
                 style={(done ? styles.taskTextDone : styles.taskText)} 
-                //TODO - use style prop
-              >
-                {title}
-              </Text>
+                value={taskNewTitle}
+                onChangeText={setTaskNewTitle}
+                editable={isEditing}
+                onSubmitEditing={handleSubmitEditing}
+                ref={textInputRef}
+              />
             </TouchableOpacity>
           </View>
+          <View style={styles.iconsContainer}>    
+            <TouchableOpacity
+              testID={`edit-${index}`}
+              style={{ paddingLeft: 24 }}
+              onPress={() => (isEditing ? handleCancelEditing() : handleStartEditing())}
+            >
+              <Icon 
+                name={(isEditing ? 'x' : 'edit-3')}
+                size={24}
+                color="#B2B2B2"
+              />
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            testID={`trash-${index}`}
-            style={{ paddingHorizontal: 24 }}
-            onPress={() => removeTask(id)}
-            //TODO - use onPress (remove task) prop
-          >
-            <Image source={trashIcon} />
-          </TouchableOpacity>
+            <View style={styles.iconWrapper}/>
+
+            <TouchableOpacity
+              testID={`trash-${index}`}
+              style={{ opacity: isEditing ? 0.2 : 1, paddingRight: 24 }}
+              onPress={() => removeTask(id)}
+              disabled={(isEditing ? true : false)}
+            >
+              <Icon 
+                name="trash-2"
+                size={24}
+                color="#B2B2B2"
+              />
+            </TouchableOpacity>
+          </View>
       </>
   )
 }
@@ -99,5 +147,14 @@ const styles = StyleSheet.create({
     color: '#1DB863',
     textDecorationLine: 'line-through',
     fontFamily: 'Inter-Medium'
+  },
+  iconsContainer: {
+    flexDirection: 'row'
+  },
+  iconWrapper: {
+    width: 1,
+    height: 24,
+    marginHorizontal: 12,
+    backgroundColor: 'rgba(196, 196, 196, 0.24)'
   }
 })
